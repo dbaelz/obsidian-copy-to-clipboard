@@ -1,10 +1,14 @@
 # copy-to-clipboard
 
-An [Obsidian](https://obsidian.md/) plugin that allows copying content to the clipboard.
+An [Obsidian](https://obsidian.md/) plugin that copies the content of a code block at the cursor to the clipboard.
 
 ## Features
 
-- Adds a button (and command) to copy the currently selected or highlighted Markdown text as a formatted `code` element into the clipboard.
+- Ribbon button ("Copy code block at cursor") and command ("Copy code block at cursor to clipboard").
+- The cursor position is read from the active editor. If it sits inside a code block, the *content* of that block is copied; otherwise nothing is copied.
+- Two kinds of blocks are recognised (based on raw Markdown source text):
+  - Inline code span: `` `Dummy Text` `` → copies `Dummy Text`.
+  - Fenced code block: a triple-backtick block containing `Yet another Text` → copies the content, preserving newlines.
 
 ## Installation
 

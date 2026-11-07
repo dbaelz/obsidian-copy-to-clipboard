@@ -1,0 +1,6 @@
+{
+  "id": "obsidian-copy-to-clipboard",
+  "name": "Copy to Clipboard",
+  "description": "Copies content to the clipboard.",
+  "isDesktopOnly": false
+}

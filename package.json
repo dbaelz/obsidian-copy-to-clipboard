@@ -1,0 +1,24 @@
+{
+  "name": "obsidian-copy-to-clipboard",
+  "version": "1.0.0",
+  "description": "An Obsidian plugin to copy content to the clipboard.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node build.mjs --watch",
+    "build": "node build.mjs --minify"
+  },
+  "keywords": [
+    "obsidian",
+    "plugin",
+    "clipboard",
+    "markdown"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "esbuild": "^0.19.0",
+    "obsidian": "^1.14.4",
+    "typescript": "^5.3.0"
+  }
+}

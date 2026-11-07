@@ -109,3 +109,69 @@ export function findCodeAtOffset(text: string, offset: number): string | null {
 
   return null;
 }
+
+/**
+ * Given full Markdown source and a character offset of the cursor, return the
+ * content of an enclosing blockquote (0–3 leading spaces + one or more `>`),
+ * with markers stripped and newlines preserved. Returns null if the offset is
+ * not inside any blockquote line.
+ */
+export function findQuoteAtOffset(text: string, offset: number): string | null {
+  const lines = text.split("\n");
+
+  let startLine = -1;
+  for (let li = 0; li < lines.length; li++) {
+    if (!/^[ \t]{0,3}>/.test(lines[li])) continue;
+    let lineStart = 0;
+    for (let k = 0; k < li; k++) lineStart += lines[k].length + 1;
+    if (offset >= lineStart && offset <= lineStart + lines[li].length) {
+      startLine = li;
+      break;
+    }
+  }
+
+  if (startLine === -1) return null;
+
+  // Backtrack to the true start of the contiguous quote run (single blank
+  // separators keep a run together).
+  let runStart = startLine;
+  while (runStart > 0) {
+    const prev = lines[runStart - 1];
+    if (/^[ \t]{0,3}>/.test(prev)) {
+      runStart--;
+      continue;
+    }
+    // Blank line before: it is a separator within the block only if the
+    // previous non-blank line (before any blanks) is also a quote.
+    let k = runStart - 2;
+    while (k >= 0 && /^[ \t]*$/.test(lines[k])) k--;
+    if (k >= 0 && /^[ \t]{0,3}>/.test(lines[k])) {
+      runStart = k + 1;
+      continue;
+    }
+    break;
+  }
+
+  const collected: string[] = [];
+  let li = runStart;
+  while (li < lines.length) {
+    const line = lines[li];
+    if (/^[ \t]*$/.test(line)) {
+      // Blank line: only continue if the next non-blank line is still a quote.
+      let peek = li + 1;
+      while (peek < lines.length && /^[ \t]*$/.test(lines[peek])) peek++;
+      if (peek >= lines.length || !/^[ \t]{0,3}>/.test(lines[peek])) break;
+      collected.push("");
+      li++;
+      continue;
+    }
+    if (!/^[ \t]{0,3}>/.test(line)) break;
+
+    // Strip 0–3 leading spaces, then all consecutive `>`, then one optional space.
+    let content = line.replace(/^[ \t]{0,3}>+/, "").replace(/^ /, "");
+    collected.push(content);
+    li++;
+  }
+
+  return collected.join("\n");
+}

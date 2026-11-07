@@ -1,4 +1,4 @@
-import { findCodeAtOffset, offsetAt } from "../src/codeblock.ts";
+import { findCodeAtOffset, findQuoteAtOffset, offsetAt } from "../src/codeblock.ts";
 
 let passed = 0;
 let failed = 0;
@@ -99,19 +99,71 @@ if (failed > 0) process.exit(1);
 // --- Independent literal-offset tests (offsets counted by hand, not via offsetAt) ---
 {
   const t = "```\nfirst block\n```\n\ntext\n\n```\nsecond block\n```\n";
-  // offsets: "```\n"=0..3, "first block\n"=4..15, "```\n"=16..19, ...
   check("literal-idx first block (char 8)", findCodeAtOffset(t, 8), "first block");
-  // "second block" starts at char 30
   check("literal-idx second block (char 34)", findCodeAtOffset(t, 34), "second block");
 }
 {
   const t = "`inline` then ```\nfenced\n```";
-  // "`inline`" spans chars 0..8; char 3 is inside the inline span
   check("literal-idx inline (char 3)", findCodeAtOffset(t, 3), "inline");
 }
 
 {
   const t = "# H\n\n```\nsecond block\n```\n";
-  // "second block" starts at char 10; char 14 is inside it
   check("literal-idx fenced (char 14)", findCodeAtOffset(t, 14), "second block");
+}
+
+// --- Blockquote tests ---
+{
+  // simple single-line quote
+  const t = "> First line only";
+  check("quote single line", findQuoteAtOffset(t, off(t, 0, 10)), "First line only");
+}
+
+{
+  // multi-line quote, markers stripped, newlines preserved
+  const t = "> First line\n> Second line\n> Third line";
+  check("quote multiline", findQuoteAtOffset(t, off(t, 1, 5)), "First line\nSecond line\nThird line");
+}
+
+{
+  // cursor on the `>` marker itself should still work
+  const t = "# Title\n\n> quoted text here\n\nEnd";
+  check("quote cursor on marker", findQuoteAtOffset(t, off(t, 2, 0)), "quoted text here");
+}
+
+{
+  // leading spaces before `>` (up to 3) are allowed
+  const t = "> indented quote line";
+  check("quote with leading space", findQuoteAtOffset(t, off(t, 0, 4)), "indented quote line");
+}
+
+{
+  // > > nested (simple nesting), markers fully stripped
+  const t = ">> nested content";
+  check("quote simple nesting", findQuoteAtOffset(t, off(t, 0, 5)), "nested content");
+}
+
+{
+  // cursor outside any quote -> null
+  const t = "# Heading\n\nJust some plain text.\n";
+  check("no quote anywhere", findQuoteAtOffset(t, off(t, 2, 3)), null);
+}
+
+{
+  // multiple quotes: pick the right one
+  const t = "> first quote\n> more first\n\ntext\n\n> second quote\n";
+  check("quote first block", findQuoteAtOffset(t, off(t, 0, 2)), "first quote\nmore first");
+  check("quote second block", findQuoteAtOffset(t, off(t, 5, 2)), "second quote");
+}
+
+{
+  // blank line inside a quote (single separator) is preserved
+  const t = "> line one\n\n> line two";
+  check("quote with blank separator", findQuoteAtOffset(t, off(t, 0, 2)), "line one\n\nline two");
+}
+
+{
+  // literal-offset independent test: "> hello" starts at char 8 after "# H\n\n"
+  const t = "# H\n\n> hello world";
+  check("literal-idx quote (char 10)", findQuoteAtOffset(t, 10), "hello world");
 }

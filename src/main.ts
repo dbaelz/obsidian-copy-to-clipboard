@@ -1,5 +1,5 @@
 import { Editor, MarkdownView, Notice, Plugin } from "obsidian";
-import { findCodeAtOffset, offsetAt } from "./codeblock";
+import { findCodeAtOffset, findQuoteAtOffset, offsetAt } from "./codeblock";
 
 /** Copy text to the clipboard, with a legacy fallback for older contexts. */
 async function copyToClipboard(text: string): Promise<void> {
@@ -43,10 +43,10 @@ export default class MarkdownCodeClipboardPlugin extends Plugin {
     }
 
     const { text, offset } = getCursorOffset(editor);
-    const content = findCodeAtOffset(text, offset);
+    const content = findCodeAtOffset(text, offset) ?? findQuoteAtOffset(text, offset);
 
     if (content === null) {
-      new Notice("Cursor is not inside a code block.", 4000);
+      new Notice("Cursor is not inside a code block or quote.", 4000);
       return;
     }
 

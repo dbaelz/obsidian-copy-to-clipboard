@@ -132,24 +132,33 @@ export function findQuoteAtOffset(text: string, offset: number): string | null {
 
   if (startLine === -1) return null;
 
-  // Backtrack to the true start of the contiguous quote run (single blank
-  // separators keep a run together).
+  // Determine the true start of the contiguous quote run containing the cursor.
+  // Phase 1 walks back over directly adjacent quote lines only. Phase 2 may
+  // merge upward across blank separators that lead to another quote block. On
+  // a hard break (a non-blank, non-quote line such as "abc", or a blank with no
+  // quote above) we simply stop — never resetting an already-found start.
   let runStart = startLine;
-  while (runStart > 0) {
-    const prev = lines[runStart - 1];
+  for (let b = runStart - 1; b >= 0; b--) {
+    const prev = lines[b];
     if (/^[ \t]{0,3}>/.test(prev)) {
-      runStart--;
-      continue;
+      // Directly adjacent quote line -> part of the same block.
+      runStart = b;
+    } else if (/^[ \t]*$/.test(prev)) {
+      // Blank separator: look upward for a quote block above the blanks.
+      let c = b - 1;
+      while (c >= 0 && /^[ \t]*$/.test(lines[c])) c--;
+      if (c >= 0 && /^[ \t]{0,3}>/.test(lines[c])) {
+        // Found an upper quote block: find its true start and jump there.
+        let top = c;
+        while (top > 0 && /^[ \t]{0,3}>/.test(lines[top - 1])) top--;
+        runStart = top;
+        b = top; // continue scanning from just above the upper block
+      } else {
+        break; // Blank with no quote above -> hard break.
+      }
+    } else {
+      break; // Non-blank, non-quote line (e.g. "abc") -> hard break.
     }
-    // Blank line before: it is a separator within the block only if the
-    // previous non-blank line (before any blanks) is also a quote.
-    let k = runStart - 2;
-    while (k >= 0 && /^[ \t]*$/.test(lines[k])) k--;
-    if (k >= 0 && /^[ \t]{0,3}>/.test(lines[k])) {
-      runStart = k + 1;
-      continue;
-    }
-    break;
   }
 
   const collected: string[] = [];
@@ -167,9 +176,14 @@ export function findQuoteAtOffset(text: string, offset: number): string | null {
     }
     if (!/^[ \t]{0,3}>/.test(line)) break;
 
-    // Strip 0–3 leading spaces, then all consecutive `>`, then one optional space.
-    let content = line.replace(/^[ \t]{0,3}>+/, "").replace(/^ /, "");
-    collected.push(content);
+    // Match the quote prefix: 0–3 leading spaces followed by one or more `>`
+    // markers, which may be separated by a single space ("> >Foo" or ">>Foo").
+    const prefixMatch = /^[ \t]{0,3}(?:>[ ]?)+/.exec(line)!;
+    const depth = (prefixMatch[0].match(/>/g) || []).length;
+    // Strip the whole prefix, then one optional leading space.
+    let content = line.slice(prefixMatch[0].length).replace(/^ /, "");
+    // Indent deeper levels by one tab per extra nesting level.
+    collected.push("\t".repeat(depth - 1) + content);
     li++;
   }
 

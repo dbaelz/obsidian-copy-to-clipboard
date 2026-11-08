@@ -138,9 +138,15 @@ if (failed > 0) process.exit(1);
 }
 
 {
-  // > > nested (simple nesting), markers fully stripped
+  // > > nested (simple nesting), markers fully stripped, one tab prefix
   const t = ">> nested content";
-  check("quote simple nesting", findQuoteAtOffset(t, off(t, 0, 5)), "nested content");
+  check("quote simple nesting", findQuoteAtOffset(t, off(t, 0, 5)), "\tnested content");
+}
+
+{
+  // space-separated nested markers are handled the same way
+  const t = "> >Foo";
+  check("quote space-separated nesting", findQuoteAtOffset(t, off(t, 0, 3)), "\tFoo");
 }
 
 {
@@ -166,4 +172,28 @@ if (failed > 0) process.exit(1);
   // literal-offset independent test: "> hello" starts at char 8 after "# H\n\n"
   const t = "# H\n\n> hello world";
   check("literal-idx quote (char 10)", findQuoteAtOffset(t, 10), "hello world");
+}
+
+{
+  // the exact input from the request: one tab per extra nesting level
+  const t = "> test\n> test2\n> 123\n> >Foo";
+  check("quote nested tabs", findQuoteAtOffset(t, off(t, 0, 2)), "test\ntest2\n123\n\tFoo");
+}
+
+{
+  // two extra levels => two tabs
+  const t = "> a\n> > b\n> >> c";
+  check("quote deeper nesting", findQuoteAtOffset(t, off(t, 0, 2)), "a\n\tb\n\t\tc");
+}
+
+{
+  // mixing nested and non-nested lines keeps the tab only on deep lines
+  const t = "> top line\n> > indented line\nplain text";
+  check("quote mixed then prose", findQuoteAtOffset(t, off(t, 0, 2)), "top line\n\tindented line");
+}
+
+{
+  // cursor inside a nested line still extracts the whole block
+  const t = "> outer\n> > inner content";
+  check("cursor in nested line", findQuoteAtOffset(t, off(t, 1, 5)), "outer\n\tinner content");
 }

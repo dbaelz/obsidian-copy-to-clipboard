@@ -9,7 +9,7 @@ An [Obsidian](https://obsidian.md/) plugin that copies the content of a code blo
 - Two kinds of blocks are recognised (based on raw Markdown source text):
   - Inline code span: `` `Dummy Text` `` → copies `Dummy Text`.
   - Fenced code block: a triple-backtick block containing `Yet another Text` → copies the content, preserving newlines.
-  - Blockquote: one or more lines starting with `>` (including simple nesting like `>>`) → copies the text without the markers, preserving newlines.
+  - Blockquote: one or more lines starting with `>` (including simple nesting like `>>` or `> >`) → copies the text without the markers. Each extra nesting level adds one tab, so the indentation of nested content is preserved. Newlines are kept.
 
 ## Installation
 
